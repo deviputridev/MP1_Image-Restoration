@@ -1,10 +1,10 @@
-# Mini Project 1 — Image Restoration
+# Mini Project 1 : Image Restoration
 
 **Mata Kuliah:** Pengolahan Citra dan Video  
 **Nama:** Devi Putri Sekar Arum  
 **NRP:** 5024241049
 
----git
+---
 
 ## Pipeline Restorasi
 

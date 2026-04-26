@@ -15,8 +15,8 @@
 3. [Landasan Teoritis](#3-landasan-teoritis)  
 4. [Perbandingan Visual](#4-perbandingan-visual)  
 5. [Analisis Histogram Tiap Tahap](#5-analisis-histogram-per-tahap)  
-6. [Analisis CDF: Sebelum vs Sesudah HEQ](#6-analisis-cdf--sebelum-vs-sesudah-heq)  
-7. [Evaluasi Kuantitatif: PSNR](#7-evaluasi-kuantitatif--psnr)  
+6. [Analisis CDF: Sebelum vs Sesudah HEQ](#6-analisis-cdf-sebelum-vs-sesudah-heq)  
+7. [Evaluasi Kuantitatif: PSNR](#7-evaluasi-kuantitatif-psnr )  
 8. [Analisis Hasil](#8-analisis-hasil)  
 9. [Cara Menjalankan Program](#9-cara-menjalankan-program)
 
@@ -211,7 +211,7 @@ di mana `MAX = 255` dan `MSE` adalah rata-rata kuadrat error per piksel.
 | Step 3 | Setelah Histogram Equalization | 13.30 |
 | Step 4 | Setelah Unsharp Masking (Final) | 12.45 |
 
-> **Catatan:** Penurunan PSNR pada Step 3 adalah fenomena yang *expected* dan tidak mengindikasikan kegagalan. HEQ mengoptimalkan distribusi intensitas untuk persepsi visual manusia, bukan untuk meminimalkan pixel-level error terhadap citra referensi. Secara visual, citra setelah HEQ terlihat jauh lebih jelas dan berkontrास tinggi meskipun PSNR-nya lebih rendah. Ini merupakan keterbatasan inherent metrik PSNR dalam mengevaluasi operasi transformasi non-linear seperti HEQ.
+> **Catatan:** Penurunan PSNR pada Step 3 adalah fenomena yang *expected* dan tidak mengindikasikan kegagalan. HEQ mengoptimalkan distribusi intensitas untuk persepsi visual manusia, bukan untuk meminimalkan pixel-level error terhadap citra referensi. Secara visual, citra setelah HEQ terlihat jauh lebih jelas dan berkontrol tinggi meskipun PSNR-nya lebih rendah. Ini merupakan keterbatasan inherent metrik PSNR dalam mengevaluasi operasi transformasi non-linear seperti HEQ.
 
 ---
 
@@ -239,6 +239,83 @@ di mana `MAX = 255` dan `MSE` adalah rata-rata kuadrat error per piksel.
 
 - **Parameter tuning** (ukuran kernel, σ, α) saat ini dipilih secara heuristik. Pendekatan *grid search* berbasis metrik SSIM (*Structural Similarity Index*) atau PSNR dapat digunakan untuk menemukan parameter optimal secara sistematis.
 
+
+---
+
+## 8.3 Analisis Perbandingan: HEQ Per-Channel (BGR) vs HEQ YCbCr
+
+### 8.3.1 Perbedaan Konseptual
+
+| Aspek | HEQ Per-Channel (BGR) | HEQ YCbCr (Luminance-Only) |
+|---|---|---|
+| **Target channel** | B, G, R masing-masing diproses independen | Hanya channel Y (kecerahan) |
+| **Ruang warna** | BGR (domain asli piksel) | YCbCr (memisahkan kecerahan dari warna) |
+| **Relasi antar-channel** | Tidak diperhitungkan : setiap channel dinormalisasi sendiri | Terjaga : Cb dan Cr tidak disentuh |
+| **Risiko color shift** | **Tinggi** : mapping berbeda tiap channel mengubah rasio R:G:B per piksel | **Tidak ada** : hanya kecerahan yang berubah |
+| **Kompleksitas** | Lebih sederhana, langsung di domain BGR | Membutuhkan konversi ruang warna (BGR↔YCbCr) |
+
+### 8.3.2 Mengapa HEQ Per-Channel Menyebabkan Color Shift
+
+Pada HEQ per-channel, setiap channel B, G, R memiliki distribusi histogram yang berbeda sehingga menghasilkan fungsi CDF yang berbeda pula. Ketika mapping `s = f(CDF(r))` diterapkan secara independen, nilai intensitas yang semula memiliki rasio tertentu (misalnya R=120, G=100, B=80 yang membentuk warna cokelat hangat) akan dipetakan ke nilai baru yang rasionya berbeda-beda, sehingga warna yang dihasilkan bergeser secara tidak terkontrol.
+
+```
+Contoh ilustratif (nilai piksel satu titik):
+
+           Input     HEQ BGR     HEQ YCbCr
+  R   :    120   →    180         155
+  G   :    100   →    190         129
+  B   :     80   →    210         104
+  
+  HEQ BGR  : rasio R:G:B berubah drastis → warna bergeser (color shift)
+  HEQ YCbCr: rasio Cb:Cr tetap, hanya Y yang diequalize → warna terjaga
+```
+
+### 8.3.3 Cara Kerja HEQ YCbCr
+
+Proses konversi dan equalization dilakukan dalam tiga langkah:
+
+```
+Gambar BGR
+    │
+    ▼
+Konversi BGR → YCbCr
+    │   Y  = komponen kecerahan (luminance)
+    │   Cb = perbedaan warna biru terhadap Y
+    │   Cr = perbedaan warna merah terhadap Y
+    │
+    ▼
+HEQ diterapkan HANYA pada channel Y
+    │   Y_eq = CDF_norm[Y]
+    │   Cb dan Cr → tidak diubah sama sekali
+    │
+    ▼
+Konversi YCbCr → BGR (dengan Y_eq, Cb, Cr asli)
+    │
+    ▼
+Gambar BGR dengan kontras meningkat, warna terjaga
+```
+
+### 8.3.4 Perbandingan Visual dan Kuantitatif
+
+Dampak perbedaan kedua pendekatan ini terlihat jelas pada histogram RGB. Pada HEQ per-channel, ketiga histogram B/G/R masing-masing membentuk distribusi merata secara independen, namun menyebabkan ketidakseimbangan warna. Pada HEQ YCbCr, distribusi luminance yang diratakan membuat seluruh gambar terlihat lebih cerah dan kontras, tetapi distribusi relatif antar-channel B/G/R tetap proporsional seperti sebelum equalization.
+
+| Metrik | HEQ Per-Channel | HEQ YCbCr |
+|---|---|---|
+| **Peningkatan kontras** | Tinggi (tiap channel direntangkan penuh) | Tinggi (luminance direntangkan penuh) |
+| **Konsistensi warna** | Rentan color shift | Warna terjaga |
+| **CDF channel Y** | Tidak secara langsung dikontrol | Mendekati diagonal sempurna |
+| **Kesesuaian persepsi** | Kurang akurat (mata manusia sensitif terhadap luminance, bukan BGR) | Lebih akurat (equalisasi pada dimensi yang dipersepsi mata) |
+
+### 8.3.5 Kesimpulan
+
+HEQ YCbCr merupakan pendekatan yang lebih tepat secara teoritis maupun perceptual karena:
+
+1. **Sistem visual manusia** lebih sensitif terhadap variasi kecerahan (luminance) daripada variasi warna (chrominance) : equalisasi pada channel Y sesuai dengan cara mata mempersepsi kontras.
+2. **Informasi warna dipertahankan** sepenuhnya karena Cb dan Cr tidak dimodifikasi, sehingga tidak ada distorsi rona (*hue*) maupun saturasi.
+3. **Hasil visual lebih natural** : peningkatan kontras terasa merata tanpa artefak warna yang mengganggu.
+
+Satu-satunya konsekuensi adalah tambahan biaya komputasi dua kali konversi ruang warna, yang dalam praktik sangat kecil dan dapat diabaikan.
+
 ---
 
 ## 9. Cara Menjalankan Program
@@ -261,7 +338,7 @@ pip install numpy opencv-python matplotlib
 ### 9.3 Struktur Direktori
 
 ```
-MP1_IMAGE RESTORATION/
+MP1_Image-Restoration/
 ├── input/
 │   └── lena_noisy.png          # Citra input (rusak)
 ├── output/
@@ -273,37 +350,61 @@ MP1_IMAGE RESTORATION/
 │   ├── pipeline_comparison.png # Visualisasi perbandingan visual pipeline
 │   ├── histogram_comparison.png# Histogram RGB per tahap pipeline
 │   └── cdf_comparison.png      # CDF sebelum vs sesudah HEQ
+├── output-YCbCr/               # Hasil restoration-YCbCr.py (HEQ luminance-only)
+│   ├── 1_median.png
+│   ├── 2_gaussian.png
+│   ├── 3_histogram_equalization.png
+│   ├── 4_sharpening.png
+│   ├── lena_restored.png
+│   ├── pipeline_comparison.png
+│   ├── histogram_comparison.png
+│   └── cdf_comparison.png
 ├── README.md
-└── restoration.py
+├── restoration.py                  # Pipeline versi HEQ per-channel (BGR)
+└── restoration-YCbCr.py            # Pipeline versi HEQ luminance-only (YCbCr)
 ```
 
 ### 9.4 Menjalankan Program
 
+Tersedia dua versi skrip yang dapat dijalankan secara bebas dan independen.
+
+**Versi 1: HEQ per-channel BGR** (versi awal):
 ```bash
 # Clone atau download repository, lalu:
-cd MP1_IMAGE_RESTORATION
+cd MP1_Image-Restoration
 
 # Pastikan citra input tersedia di folder input/
 # Jalankan skrip utama:
 python restoration.py
+# Output tersimpan di folder: output/
 ```
+
+**Versi 2: HEQ luminance-only YCbCr** (versi perbaikan, tanpa color shift):
+```bash
+cd MP1_Image-Restoration
+python restoration-YCbCr.py
+# Output tersimpan di folder: output-YCbCr/
+```
+
+Kedua skrip dapat dijalankan keduanya sekaligus, output masing-masing tersimpan di folder terpisah sehingga tidak saling menimpa dan hasilnya dapat dibandingkan secara langsung.
 
 ### 9.5 Output yang Dihasilkan
 
-Setelah program selesai dijalankan, folder `output/` akan berisi:
+Setiap skrip menghasilkan 8 file dengan nama yang sama, tersimpan di folder masing-masing (`output/` atau `output-YCbCr/`):
 
 | File | Keterangan |
 |------|-----------|
 | `1_median.png` | Citra setelah Median Filter |
 | `2_gaussian.png` | Citra setelah Gaussian Filter |
-| `3_histogram_equalization.png` | Citra setelah HEQ |
+| `3_histogram_equalization.png` | Citra setelah HEQ (metode berbeda tiap versi) |
 | `4_sharpening.png` | Citra setelah Unsharp Masking |
 | `lena_restored.png` | Citra hasil restorasi final |
 | `pipeline_comparison.png` | Visualisasi komparatif semua tahap pipeline |
 | `histogram_comparison.png` | Histogram RGB per tahap pipeline |
 | `cdf_comparison.png` | Perbandingan CDF sebelum vs sesudah HEQ |
 
-Program juga mencetak laporan PSNR di terminal untuk setiap tahap pipeline sebagai evaluasi kuantitatif.
+
+Perbedaan utama antar kedua versi hanya terlihat pada file `3_histogram_equalization.png` dan `lena_restored.png`, yang mana versi YCbCr menghasilkan warna yang lebih natural tanpa color shift. Kedua program juga mencetak laporan PSNR di terminal untuk evaluasi kuantitatif tiap tahap.
 
 ---
 

@@ -144,15 +144,23 @@ di mana `α` (alpha) adalah faktor penguatan detail (`α = 1.5` pada implementas
 
 ### 4.1 Sebelum dan Sesudah Restorasi
 
-| Citra Noisy (Input) | Citra Restored (Output) | Citra Original (Referensi) |
-|:-------------------:|:-----------------------:|:--------------------------:|
-| ![Noisy](input/lena_noisy.png) | ![Restored](output/lena_restored.png) | ![Original](input/lena_ori.png) |
+| Citra Noisy (Input) | Restored (HEQ BGR) | Restored (HEQ YCbCr) | Citra Original (Referensi) |
+|:-------------------:|:------------------:|:--------------------:|:--------------------------:|
+| ![Noisy](input/lena_noisy.png) | ![Restored BGR](output/lena_restored.png) | ![Restored YCbCr](output-YCbCr/lena_restored.png) | ![Original](input/lena_ori.png) |
 
 ### 4.2 Perbandingan Visual Tiap Tahap Pipeline
 
-![Pipeline Comparison](output/pipeline_comparison.png)
+#### Versi 1: HEQ Per-Channel (BGR)
 
-> **Gambar 4.2.** Perbandingan visual citra pada setiap tahap pipeline: (a) Input Noisy, (b) Setelah Median Filter, (c) Setelah Gaussian Filter, (d) Setelah Histogram Equalization, (e) Setelah Unsharp Masking, (f) Citra Original.
+![Pipeline Comparison BGR](output/pipeline_comparison.png)
+
+> **Gambar 4.2a.** Pipeline versi HEQ per-channel BGR: (a) Input Noisy, (b) Setelah Median Filter, (c) Setelah Gaussian Filter, (d) Setelah Histogram Equalization per-channel, (e) Setelah Unsharp Masking, (f) Citra Original. Perhatikan kemungkinan pergeseran warna (*color shift*) pada tahap (d) akibat HEQ yang diaplikasikan secara independen pada setiap channel B, G, R.
+
+#### Versi 2: HEQ Luminance-Only (YCbCr)
+
+![Pipeline Comparison YCbCr](output-YCbCr/pipeline_comparison.png)
+
+> **Gambar 4.2b.** Pipeline versi HEQ luminance-only YCbCr: (a) Input Noisy, (b) Setelah Median Filter, (c) Setelah Gaussian Filter, (d) Setelah Histogram Equalization pada channel Y saja, (e) Setelah Unsharp Masking, (f) Citra Original. Warna pada tahap (d) dan seterusnya lebih natural karena channel Cb dan Cr tidak dimodifikasi..
 
 ---
 

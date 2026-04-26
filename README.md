@@ -181,7 +181,7 @@ Histogram tetap terdistribusi luas dengan sedikit perubahan pada ekor distribusi
 
 ---
 
-## 6. Analisis CDF — Sebelum vs Sesudah HEQ
+## 6. Analisis CDF: Sebelum vs Sesudah HEQ
 
 ![CDF Comparison](output/cdf_comparison.png)
 
@@ -189,11 +189,11 @@ Histogram tetap terdistribusi luas dengan sedikit perubahan pada ekor distribusi
 
 ### Interpretasi
 
-CDF ideal untuk citra dengan kontras sempurna adalah garis diagonal lurus dari (0,0) ke (255,100%). Sebelum HEQ, kurva CDF menunjukkan kenaikan curam di rentang intensitas sempit — mengkonfirmasi bahwa sebagian besar piksel terkonsentrasi pada rentang nilai tertentu. Setelah HEQ, kurva CDF mendekati garis diagonal, menandakan distribusi intensitas yang jauh lebih merata di seluruh rentang 0–255.
+CDF ideal untuk citra dengan kontras sempurna adalah garis diagonal lurus dari (0,0) ke (255,100%). Sebelum HEQ, kurva CDF menunjukkan kenaikan curam di rentang intensitas sempit yang mengkonfirmasi bahwa sebagian besar piksel terkonsentrasi pada rentang nilai tertentu. Setelah HEQ, kurva CDF mendekati garis diagonal, menandakan distribusi intensitas yang jauh lebih merata di seluruh rentang 0–255.
 
 ---
 
-## 7. Evaluasi Kuantitatif — PSNR
+## 7. Evaluasi Kuantitatif: PSNR
 
 PSNR (*Peak Signal-to-Noise Ratio*) digunakan sebagai metrik kuantitatif untuk mengukur kemiripan citra hasil restorasi dengan citra referensi (original). PSNR dihitung sebagai:
 
@@ -267,7 +267,7 @@ MP1_IMAGE RESTORATION/
 ├── output/
 │   ├── 1_median.png            # Hasil setelah Median Filter
 │   ├── 2_gaussian.png          # Hasil setelah Gaussian Filter
-│   ├── 3_histogram_equalization.png
+│   ├── 3_histogram_equalization.png # Hasil setelah Histogram Equalization
 │   ├── 4_sharpening.png        # Hasil setelah Unsharp Masking
 │   ├── lena_restored.png       # Citra hasil akhir restorasi
 │   ├── pipeline_comparison.png # Visualisasi perbandingan visual pipeline
@@ -307,4 +307,4 @@ Program juga mencetak laporan PSNR di terminal untuk setiap tahap pipeline sebag
 
 ---
 
-*Mini Project 1 — Pengolahan Citra dan Video*
+*Mini Project 1: Pengolahan Citra dan Video*
